@@ -25,7 +25,12 @@ class NotDiamondSelectorResult(SelectorResult):
 
 class NotDiamondSelector(LLMSingleSelector):
     def __init__(
-        self, metric: Metric = None, client: NotDiamond = None, *args, **kwargs
+        self,
+        metric: Metric = None,
+        client: NotDiamond = None,
+        timeout: int = 10,
+        *args,
+        **kwargs,
     ):
         # Not needed - we will route using our own client based on the query prompt
         _llm = None
@@ -36,6 +41,7 @@ class NotDiamondSelector(LLMSingleSelector):
 
         self._metric = metric or Metric("accuracy")
         self._client = client or NotDiamond()
+        self._timeout = timeout
         super().__init__(_llm, _prompt, *args, **kwargs)
 
     def _select(
@@ -54,7 +60,7 @@ class NotDiamondSelector(LLMSingleSelector):
             tradeoff=self._client.tradeoff,
             preference_id=self._client.preference_id,
             tools=self._client.tools,
-            timeout=timeout or 5,
+            timeout=timeout or self._timeout,
         )
 
         return _get_nd_selector_result(best_llm, llm_configs, session_id)
@@ -75,7 +81,7 @@ class NotDiamondSelector(LLMSingleSelector):
             tradeoff=self._client.tradeoff,
             preference_id=self._client.preference_id,
             tools=self._client.tools,
-            timeout=timeout or 5,
+            timeout=timeout or self._timeout,
         )
 
         return _get_nd_selector_result(best_llm, llm_configs, session_id)
