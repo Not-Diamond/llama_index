@@ -57,7 +57,7 @@ class NotDiamondSelector(LLMSingleSelector):
             timeout=timeout or 5,
         )
 
-        return _get_selector_result(best_llm, llm_configs, session_id)
+        return _get_nd_selector_result(best_llm, llm_configs, session_id)
 
     async def _aselect(
         self, choices: Sequence[ToolMetadata], query: QueryBundle, timeout: int = None
@@ -78,7 +78,7 @@ class NotDiamondSelector(LLMSingleSelector):
             timeout=timeout or 5,
         )
 
-        return _get_selector_result(best_llm, llm_configs, session_id)
+        return _get_nd_selector_result(best_llm, llm_configs, session_id)
 
     def _choices_to_llm_configs(
         self, choices: Sequence[ToolMetadata]
@@ -99,8 +99,8 @@ class NotDiamondSelector(LLMSingleSelector):
         return llm_configs
 
 
-def _get_selector_result(
-    self, best_llm: LLMConfig, llm_configs: List[LLMConfig], session_id: str
+def _get_nd_selector_result(
+    best_llm: LLMConfig, llm_configs: List[LLMConfig], session_id: str
 ) -> SelectorResult:
     """
     Given a LLMConfig returned by NotDiamond, build a SelectorResult.
