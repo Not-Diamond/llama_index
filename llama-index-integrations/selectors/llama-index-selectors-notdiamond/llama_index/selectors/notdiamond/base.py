@@ -1,13 +1,11 @@
 import logging
+import os
 from typing import Sequence, List
 
 from llama_index.core.schema import QueryBundle
 from llama_index.core.tools.types import ToolMetadata
-from llama_index.selectors.base import (
-    LLMSingleSelector,
-    SelectorResult,
-    SingleSelection,
-)
+from llama_index.core.base.base_selector import SingleSelection
+from llama_index.core.selectors import LLMSingleSelector
 
 from notdiamond import NotDiamond, LLMConfig, Metric
 
@@ -15,12 +13,12 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.WARNING)
 
 
-class NotDiamondSelectorResult(SelectorResult):
-    def __init__(
-        self, selections: Sequence[SingleSelection], session_id: str, *args, **kwargs
-    ):
-        super().__init__(selections, *args, **kwargs)
-        self.session_id = session_id
+class NotDiamondSelectorResult(SingleSelection):
+    """A single selection of a choice provided by Not Diamond."""
+
+    index: int
+    reason: str
+    session_id: str
 
 
 class NotDiamondSelector(LLMSingleSelector):
@@ -29,24 +27,27 @@ class NotDiamondSelector(LLMSingleSelector):
         metric: Metric = None,
         client: NotDiamond = None,
         timeout: int = 10,
+        api_key: str = None,
         *args,
         **kwargs,
     ):
         # Not needed - we will route using our own client based on the query prompt
-        _llm = None
-        _prompt = None
+        _encap_selector = LLMSingleSelector.from_defaults()
+
+        if not api_key:
+            api_key = os.getenv("NOTDIAMOND_API_KEY")
 
         if metric and not isinstance(metric, Metric):
             raise ValueError(f"Invalid metric - needed type Metric but got {metric}")
 
         self._metric = metric or Metric("accuracy")
-        self._client = client or NotDiamond()
+        self._client = client or NotDiamond(api_key=api_key)
         self._timeout = timeout
-        super().__init__(_llm, _prompt, *args, **kwargs)
+        super().__init__(_encap_selector._llm, _encap_selector._prompt, *args, **kwargs)
 
     def _select(
         self, choices: Sequence[ToolMetadata], query: QueryBundle, timeout: int = None
-    ) -> SelectorResult:
+    ) -> SingleSelection:
         llm_configs = self._choices_to_llm_configs(choices)
         messages = [{"role": "user", "content": query.query_str}]
 
@@ -67,7 +68,7 @@ class NotDiamondSelector(LLMSingleSelector):
 
     async def _aselect(
         self, choices: Sequence[ToolMetadata], query: QueryBundle, timeout: int = None
-    ) -> SelectorResult:
+    ) -> SingleSelection:
         llm_configs = self._choices_to_llm_configs(choices)
         messages = [{"role": "user", "content": query.query_str}]
 
@@ -96,9 +97,9 @@ class NotDiamondSelector(LLMSingleSelector):
             else:
                 llm_configs.append(_tool_metadata_to_llm_config(choice))
 
-        if self._client.llm_configs and set(llm_configs) != set(
-            self._client.llm_configs
-        ):
+        if getattr(self._client, "llm_configs", None) and {
+            str(lc) for lc in llm_configs
+        } != {str(lc) for lc in self._client.llm_configs}:
             LOGGER.warning(
                 f"LLM configs do not match those in the NotDiamond client - will use configs passed to `aselect`."
             )
@@ -107,13 +108,14 @@ class NotDiamondSelector(LLMSingleSelector):
 
 def _get_nd_selector_result(
     best_llm: LLMConfig, llm_configs: List[LLMConfig], session_id: str
-) -> SelectorResult:
+) -> SingleSelection:
     """
     Given a LLMConfig returned by NotDiamond, build a SelectorResult.
 
     N.B. we inherit from SelectorResult to provide users with their request's session ID.
     """
     best_index = None
+    print(f"{llm_configs}, best={best_llm}")
     for lcidx, llm_config in enumerate(llm_configs):
         if llm_config == best_llm:
             best_index = lcidx
@@ -124,12 +126,8 @@ def _get_nd_selector_result(
         )
 
     return NotDiamondSelectorResult(
-        selections=[
-            SingleSelection(
-                index=best_index,
-                reason=f"Not Diamond selected {best_llm} as best for this prompt.",
-            )
-        ],
+        index=best_index,
+        reason=f"Not Diamond selected {best_llm} as best for this prompt.",
         session_id=session_id,
     )
 
