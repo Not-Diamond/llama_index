@@ -6,8 +6,10 @@ from unittest.mock import MagicMock
 import uuid
 
 from llama_index.core.tools import ToolMetadata
-from llama_index.selectors.notdiamond.base import _get_nd_selector_result
-from llama_index.selectors.notdiamond.base import NotDiamondSelector
+from llama_index.selectors.notdiamond.base import (
+    _get_nd_selector_result,
+    NotDiamondSelector,
+)
 
 from notdiamond import LLMConfig
 
