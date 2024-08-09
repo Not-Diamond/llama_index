@@ -7,6 +7,7 @@ from llama_index.core.schema import QueryBundle
 from llama_index.core.tools.types import ToolMetadata
 from llama_index.core.base.base_selector import SelectorResult
 from llama_index.core.selectors import LLMSingleSelector
+from llama_index.core.selectors.llm_selectors import _build_choices_text
 
 from notdiamond import NotDiamond, LLMConfig, Metric
 
@@ -17,8 +18,11 @@ LOGGER.setLevel(logging.WARNING)
 class NotDiamondSelectorResult(SelectorResult):
     """A single selection of a choice provided by Not Diamond."""
 
+    class Config:
+        arbitrary_types_allowed = True
+
     session_id: str
-    llm: str
+    llm: LLMConfig
 
     @classmethod
     def from_selector_result(
@@ -100,7 +104,7 @@ class NotDiamondSelector(LLMSingleSelector):
         Call Not Diamond to select the best LLM for the given prompt, then have the LLM select the best tool.
         """
         messages = [
-            {"role": "system", "content": self._prompt},
+            {"role": "system", "content": self._format_prompt(choices, query)},
             {"role": "user", "content": query.query_str},
         ]
 
@@ -130,7 +134,7 @@ class NotDiamondSelector(LLMSingleSelector):
         Call Not Diamond to select the best LLM for the given prompt, then have the LLM select the best tool.
         """
         messages = [
-            {"role": "system", "content": self._prompt},
+            {"role": "system", "content": self._format_prompt(choices, query)},
             {"role": "user", "content": query.query_str},
         ]
 
@@ -151,4 +155,14 @@ class NotDiamondSelector(LLMSingleSelector):
 
         return NotDiamondSelectorResult.from_selector_result(
             await super()._aselect(choices, query), session_id, best_llm
+        )
+
+    def _format_prompt(
+        self, choices: Sequence[ToolMetadata], query: QueryBundle
+    ) -> str:
+        context_list = _build_choices_text(choices)
+        return self._prompt.format(
+            num_choices=len(choices),
+            context_list=context_list,
+            query_str=query.query_str,
         )
