@@ -89,6 +89,10 @@ mkdocs-material = "^9.5.25"
 mkdocs-redirects = "^1.2.1"
 mkdocstrings = {extras = ["python"], version = "^0.25.1"}
 
+[tool.poetry.group.test.dependencies]
+llama-index-llms-anthropic = "^0.1.17"
+llama-index-llms-openai = "^0.1.29"
+
 [tool.poetry.scripts]
 llamaindex-cli = 'llama_index.cli.command_line:main'
 

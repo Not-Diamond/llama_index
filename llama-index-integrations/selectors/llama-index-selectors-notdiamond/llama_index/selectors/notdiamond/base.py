@@ -39,15 +39,10 @@ class NotDiamondSelector(LLMSingleSelector):
         # Not needed - we will route using our own client based on the query prompt
         # Add @property for _llm here
         _encap_selector = LLMSingleSelector.from_defaults()
+        self._llm = None
         self._prompt = _encap_selector._prompt
 
-        api_key = api_key or os.getenv("NOTDIAMOND_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "No API key provided and NOTDIAMOND_API_KEY not found in environment."
-            )
-
-        if getattr(client, "llm_configs", None):
+        if not getattr(client, "llm_configs", None):
             raise ValueError(
                 "NotDiamond client must have llm_configs before creating a NotDiamondSelector."
             )
@@ -154,5 +149,5 @@ class NotDiamondSelector(LLMSingleSelector):
         self._llm = self._llm_config_to_client(best_llm)
 
         return NotDiamondSelectorResult.from_selector_result(
-            super()._select(choices, query), session_id
+            await super()._aselect(choices, query), session_id
         )
