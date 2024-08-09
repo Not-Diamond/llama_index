@@ -76,6 +76,7 @@ class TestNotDiamondSelector:
         query = "Please describe the llama_index framework in 280 characters or less."
         result = nd_selector._select(choices, QueryBundle(query_str=query))
         assert result.session_id == session_id
+        assert str(result.llm) == "openai/gpt-4o"
         assert result.selections[0].index == 0
         assert openai_mock.is_called
 
@@ -89,5 +90,6 @@ class TestNotDiamondSelector:
         query = "How can I cook a vegan variant of deviled eggs?"
         result = await nd_selector._aselect(choices, QueryBundle(query_str=query))
         assert result.session_id == session_id
+        assert str(result.llm) == "anthropic/claude-3-opus-20240229"
         assert result.selections[0].index == 1
         assert anthropic_mock.is_called

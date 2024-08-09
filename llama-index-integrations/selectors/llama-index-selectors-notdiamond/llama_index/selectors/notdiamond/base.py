@@ -18,12 +18,13 @@ class NotDiamondSelectorResult(SelectorResult):
     """A single selection of a choice provided by Not Diamond."""
 
     session_id: str
+    llm: str
 
     @classmethod
     def from_selector_result(
-        cls, selector_result: SelectorResult, session_id: str
+        cls, selector_result: SelectorResult, session_id: str, best_llm: LLMConfig
     ) -> "NotDiamondSelectorResult":
-        return cls(session_id=session_id, **selector_result.dict())
+        return cls(session_id=session_id, llm=best_llm, **selector_result.dict())
 
 
 class NotDiamondSelector(LLMSingleSelector):
@@ -119,7 +120,7 @@ class NotDiamondSelector(LLMSingleSelector):
         self._llm = self._llm_config_to_client(best_llm)
 
         return NotDiamondSelectorResult.from_selector_result(
-            super()._select(choices, query), session_id
+            super()._select(choices, query), session_id, best_llm
         )
 
     async def _aselect(
@@ -149,5 +150,5 @@ class NotDiamondSelector(LLMSingleSelector):
         self._llm = self._llm_config_to_client(best_llm)
 
         return NotDiamondSelectorResult.from_selector_result(
-            await super()._aselect(choices, query), session_id
+            await super()._aselect(choices, query), session_id, best_llm
         )
