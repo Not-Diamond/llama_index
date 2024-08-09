@@ -41,6 +41,10 @@ class NotDiamondSelector(LLMSingleSelector):
         *args,
         **kwargs,
     ):
+        """
+        Initialize a NotDiamondSelector. Users should instantiate and configure a NotDiamond client as needed before
+        creating this selector. The constructor will raise errors re: required client fields.
+        """
         # Not needed - we will route using our own client based on the query prompt
         # Add @property for _llm here
         _encap_selector = LLMSingleSelector.from_defaults()
@@ -65,6 +69,10 @@ class NotDiamondSelector(LLMSingleSelector):
         super().__init__(_encap_selector._llm, _encap_selector._prompt, *args, **kwargs)
 
     def _llm_config_to_client(self, llm_config: LLMConfig | str) -> LLM:
+        """
+        For the selected LLMConfig dynamically create an LLM instance. NotDiamondSelector will
+        assign this to self._llm to help select the best index.
+        """
         if isinstance(llm_config, str):
             llm_config = LLMConfig.from_string(llm_config)
         provider, model = llm_config.provider, llm_config.model
@@ -91,9 +99,7 @@ class NotDiamondSelector(LLMSingleSelector):
 
             output = TogetherLLM(model=model, api_key=os.getenv("TOGETHERAI_API_KEY"))
         else:
-            raise ValueError(
-                f"Unsupported provider for NotDiamond llama_index integration: {provider}"
-            )
+            raise ValueError(f"Unsupported provider for NotDiamondSelector: {provider}")
 
         return output
 
@@ -131,7 +137,7 @@ class NotDiamondSelector(LLMSingleSelector):
         self, choices: Sequence[ToolMetadata], query: QueryBundle, timeout: int = None
     ) -> SelectorResult:
         """
-        Call Not Diamond to select the best LLM for the given prompt, then have the LLM select the best tool.
+        Call Not Diamond asynchronously to select the best LLM for the given prompt, then have the LLM select the best tool.
         """
         messages = [
             {"role": "system", "content": self._format_prompt(choices, query)},
@@ -160,6 +166,10 @@ class NotDiamondSelector(LLMSingleSelector):
     def _format_prompt(
         self, choices: Sequence[ToolMetadata], query: QueryBundle
     ) -> str:
+        """
+        A system prompt for selection is created when instantiating the parent LLMSingleSelector class.
+        This method formats the prompt into a str so that it can be serialized for the NotDiamond API.
+        """
         context_list = _build_choices_text(choices)
         return self._prompt.format(
             num_choices=len(choices),
